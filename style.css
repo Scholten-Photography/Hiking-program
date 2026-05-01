@@ -3,12 +3,36 @@ body {
     font-family: Arial, sans-serif;
 }
 
-h1 {
-    text-align: center;
+.app {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 300px;
+    background: #111;
+    color: white;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+}
+
+#hike-list {
+    list-style: none;
+    padding: 0;
+}
+
+#hike-list li {
     padding: 10px;
+    margin-bottom: 10px;
+    background: #222;
+    cursor: pointer;
+    border-radius: 5px;
 }
 
 #map {
-    height: 90vh;
-    width: 100%;
+    flex: 1;
 }
