@@ -16,12 +16,24 @@
         <h2>Hikes</h2>
 
         <button id="save-btn">Save Hike</button>
-        <button id="clear-btn">Clear</button>
+        <button id="undo-btn">Undo Last Point</button>
+        <button id="clear-btn">Clear Drawing</button>
+
+        <p id="live-distance">Distance: 0 km</p>
 
         <ul id="hike-list"></ul>
     </div>
 
     <div id="map"></div>
+
+    <!-- Hike detail panel -->
+    <div id="detail-panel" class="hidden">
+        <button id="close-panel">X</button>
+        <h2 id="detail-name"></h2>
+        <p id="detail-distance"></p>
+        <p id="detail-elevation"></p>
+        <p id="detail-notes"></p>
+    </div>
 
 </div>
 
