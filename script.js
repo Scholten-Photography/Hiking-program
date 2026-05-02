@@ -73,12 +73,12 @@ map.on('click', function(e) {
 });
 
 /* =========================
-   SNAP ROUTING (FIXED)
+   SNAP ROUTING (IMPROVED)
 ========================= */
 async function getRoute(points) {
     try {
         const response = await fetch(
-            "https://api.openrouteservice.org/v2/directions/foot-hiking",
+            "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
             {
                 method: "POST",
                 headers: {
@@ -86,36 +86,52 @@ async function getRoute(points) {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    coordinates: points,
-                    instructions: false
+                    coordinates: points
                 })
             }
         );
 
         const data = await response.json();
 
-        console.log("API RESPONSE:", data); // 🔍 DEBUG
+        // 🔍 FULL DEBUG OUTPUT
+        console.log("FULL API RESPONSE:");
+        console.dir(data);
 
-        if (!data.routes || !data.routes.length) {
-            alert("No route found here. Try spreading points farther apart or use manual mode.");
+        if (!data.features || !data.features.length) {
+            alert("No route found. Try spacing points farther apart.");
             return;
         }
 
-        const coords = data.routes[0].geometry.coordinates;
+        const coords = data.features[0].geometry.coordinates;
+
+        if (!coords || coords.length === 0) {
+            alert("Route data empty. Try manual mode.");
+            return;
+        }
+
         const latlngs = coords.map(c => [c[1], c[0]]);
 
         currentRoute = latlngs;
 
         drawLine(latlngs);
 
-        const distance = (data.routes[0].summary.distance / 1000).toFixed(2);
+        const distance = (data.features[0].properties.summary.distance / 1000).toFixed(2);
 
         document.getElementById("live-distance").textContent =
             "Distance: " + distance + " km";
 
     } catch (err) {
         console.error("ROUTING ERROR:", err);
-        alert("Routing failed. Check console (F12) for details.");
+
+        // 🔁 FALLBACK: draw straight line instead of failing
+        const fallback = routePoints.map(p => [p[1], p[0]]);
+        currentRoute = fallback;
+        drawLine(fallback);
+
+        document.getElementById("live-distance").textContent =
+            "Distance: " + calculateDistance(fallback) + " km";
+
+        alert("Snap failed — using manual fallback.");
     }
 }
 
