@@ -23,7 +23,9 @@ hikes.forEach((hike, index) => {
     const li = document.createElement("li");
     li.innerHTML = `<b>${hike.name}</b><br>${hike.distance} km`;
 
-    li.onclick = () => {
+    li.onclick = (e) => {
+        e.stopPropagation(); // 🔥 prevents panel closing
+
         selectedHikeIndex = index;
         map.fitBounds(line.getBounds());
         showDetails(hike);
@@ -36,8 +38,6 @@ hikes.forEach((hike, index) => {
    PANEL
 ========================= */
 function showDetails(hike) {
-    console.log("Opening panel", hike); // DEBUG
-
     document.getElementById("detail-name").textContent = hike.name;
     document.getElementById("detail-distance").textContent = hike.distance + " km";
     document.getElementById("detail-elevation").textContent = hike.elevation + " m";
@@ -51,7 +51,7 @@ document.getElementById("close-panel").onclick = () => {
 };
 
 /* =========================
-   MODE
+   MODE TOGGLE
 ========================= */
 document.getElementById("mode-toggle").onclick = function () {
     snapMode = !snapMode;
@@ -59,14 +59,23 @@ document.getElementById("mode-toggle").onclick = function () {
 };
 
 /* =========================
-   DRAW
+   MAP CLICK (FIXED)
 ========================= */
 map.on('click', function(e) {
-    if (!e.originalEvent.shiftKey) return;
 
+    // Click map without shift → close panel
+    if (!e.originalEvent.shiftKey) {
+        document.getElementById("detail-panel").classList.add("hidden");
+        return;
+    }
+
+    // SHIFT = draw
     if (snapMode) {
         routePoints.push([e.latlng.lng, e.latlng.lat]);
-        if (routePoints.length >= 2) getRoute(routePoints);
+
+        if (routePoints.length >= 2) {
+            getRoute(routePoints);
+        }
     } else {
         currentRoute.push([e.latlng.lat, e.latlng.lng]);
         drawLine(currentRoute);
@@ -74,32 +83,41 @@ map.on('click', function(e) {
 });
 
 /* =========================
-   ROUTE
+   ROUTING
 ========================= */
 async function getRoute(points) {
-    const res = await fetch(
-        "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
-        {
-            method: "POST",
-            headers: {
-                "Authorization": API_KEY,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ coordinates: points })
+    try {
+        const res = await fetch(
+            "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": API_KEY,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ coordinates: points })
+            }
+        );
+
+        const data = await res.json();
+
+        if (!data.features?.length) {
+            alert("No route found");
+            return;
         }
-    );
 
-    const data = await res.json();
+        const coords = data.features[0].geometry.coordinates;
+        currentRoute = coords.map(c => [c[1], c[0]]);
 
-    if (!data.features?.length) return alert("No route");
+        drawLine(currentRoute);
 
-    const coords = data.features[0].geometry.coordinates;
-    currentRoute = coords.map(c => [c[1], c[0]]);
+        const dist = (data.features[0].properties.summary.distance / 1000).toFixed(2);
+        document.getElementById("live-distance").textContent = "Distance: " + dist + " km";
 
-    drawLine(currentRoute);
-
-    const dist = (data.features[0].properties.summary.distance / 1000).toFixed(2);
-    document.getElementById("live-distance").textContent = "Distance: " + dist + " km";
+    } catch (err) {
+        console.error(err);
+        alert("Routing failed");
+    }
 }
 
 /* =========================
@@ -108,6 +126,32 @@ async function getRoute(points) {
 function drawLine(route) {
     if (currentLine) map.removeLayer(currentLine);
     currentLine = L.polyline(route, { color: "blue" }).addTo(map);
+}
+
+/* =========================
+   DISTANCE
+========================= */
+function calculateDistance(route) {
+    let total = 0;
+
+    for (let i = 1; i < route.length; i++) {
+        const [lat1, lon1] = route[i - 1];
+        const [lat2, lon2] = route[i];
+
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+
+        const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) ** 2;
+
+        total += 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    return total.toFixed(2);
 }
 
 /* =========================
@@ -132,9 +176,29 @@ document.getElementById("save-btn").onclick = function () {
 };
 
 /* =========================
+   UNDO
+========================= */
+document.getElementById("undo-btn").onclick = function () {
+    if (snapMode) {
+        routePoints.pop();
+
+        if (routePoints.length >= 2) {
+            getRoute(routePoints);
+        } else {
+            clearDrawing();
+        }
+    } else {
+        currentRoute.pop();
+        drawLine(currentRoute);
+    }
+};
+
+/* =========================
    CLEAR (FIXED)
 ========================= */
-document.getElementById("clear-btn").onclick = function () {
+document.getElementById("clear-btn").onclick = clearDrawing;
+
+function clearDrawing() {
     routePoints = [];
     currentRoute = [];
 
@@ -144,17 +208,33 @@ document.getElementById("clear-btn").onclick = function () {
     }
 
     document.getElementById("live-distance").textContent = "Distance: 0 km";
+}
+
+/* =========================
+   DELETE
+========================= */
+document.getElementById("delete-btn").onclick = function () {
+    if (selectedHikeIndex === null) return;
+
+    if (!confirm("Delete this hike?")) return;
+
+    hikes.splice(selectedHikeIndex, 1);
+    localStorage.setItem("hikes", JSON.stringify(hikes));
+    location.reload();
 };
 
 /* =========================
-   UNDO
+   EDIT
 ========================= */
-document.getElementById("undo-btn").onclick = function () {
-    if (snapMode) {
-        routePoints.pop();
-        if (routePoints.length >= 2) getRoute(routePoints);
-    } else {
-        currentRoute.pop();
-        drawLine(currentRoute);
-    }
+document.getElementById("edit-btn").onclick = function () {
+    if (selectedHikeIndex === null) return;
+
+    const hike = hikes[selectedHikeIndex];
+
+    hike.name = prompt("New name:", hike.name) || hike.name;
+    hike.elevation = prompt("New elevation:", hike.elevation) || hike.elevation;
+    hike.notes = prompt("New notes:", hike.notes) || hike.notes;
+
+    localStorage.setItem("hikes", JSON.stringify(hikes));
+    location.reload();
 };
