@@ -23,12 +23,9 @@ hikes.forEach((hike, index) => {
     const li = document.createElement("li");
     li.innerHTML = `<b>${hike.name}</b><br>${hike.distance} km`;
 
-    li.onclick = (e) => {
-        e.stopPropagation();
-
+    li.onclick = () => {
         selectedHikeIndex = index;
         map.fitBounds(line.getBounds());
-
         showDetails(hike);
     };
 
@@ -36,25 +33,17 @@ hikes.forEach((hike, index) => {
 });
 
 /* =========================
-   PANEL (FIXED)
+   PANEL UPDATE
 ========================= */
 function showDetails(hike) {
-    const panel = document.getElementById("detail-panel");
-
     document.getElementById("detail-name").textContent = hike.name;
     document.getElementById("detail-distance").textContent = hike.distance + " km";
     document.getElementById("detail-elevation").textContent = hike.elevation + " m";
     document.getElementById("detail-notes").textContent = hike.notes || "";
-
-    panel.classList.remove("hidden");
 }
 
-document.getElementById("close-panel").onclick = () => {
-    document.getElementById("detail-panel").classList.add("hidden");
-};
-
 /* =========================
-   MODE TOGGLE
+   MODE
 ========================= */
 document.getElementById("mode-toggle").onclick = function () {
     snapMode = !snapMode;
@@ -62,19 +51,14 @@ document.getElementById("mode-toggle").onclick = function () {
 };
 
 /* =========================
-   MAP DRAW (NO PANEL INTERFERENCE)
+   DRAW
 ========================= */
 map.on('click', function(e) {
-
-    // ONLY handle drawing here — DO NOT close panel
     if (!e.originalEvent.shiftKey) return;
 
     if (snapMode) {
         routePoints.push([e.latlng.lng, e.latlng.lat]);
-
-        if (routePoints.length >= 2) {
-            getRoute(routePoints);
-        }
+        if (routePoints.length >= 2) getRoute(routePoints);
     } else {
         currentRoute.push([e.latlng.lat, e.latlng.lng]);
         drawLine(currentRoute);
@@ -85,39 +69,29 @@ map.on('click', function(e) {
    ROUTING
 ========================= */
 async function getRoute(points) {
-    try {
-        const res = await fetch(
-            "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
-            {
-                method: "POST",
-                headers: {
-                    "Authorization": API_KEY,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ coordinates: points })
-            }
-        );
-
-        const data = await res.json();
-
-        if (!data.features?.length) {
-            alert("No route found");
-            return;
+    const res = await fetch(
+        "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
+        {
+            method: "POST",
+            headers: {
+                "Authorization": API_KEY,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ coordinates: points })
         }
+    );
 
-        const coords = data.features[0].geometry.coordinates;
-        currentRoute = coords.map(c => [c[1], c[0]]);
+    const data = await res.json();
 
-        drawLine(currentRoute);
+    if (!data.features?.length) return alert("No route");
 
-        const dist = (data.features[0].properties.summary.distance / 1000).toFixed(2);
-        document.getElementById("live-distance").textContent =
-            "Distance: " + dist + " km";
+    const coords = data.features[0].geometry.coordinates;
+    currentRoute = coords.map(c => [c[1], c[0]]);
 
-    } catch (err) {
-        console.error(err);
-        alert("Routing failed");
-    }
+    drawLine(currentRoute);
+
+    const dist = (data.features[0].properties.summary.distance / 1000).toFixed(2);
+    document.getElementById("live-distance").textContent = "Distance: " + dist + " km";
 }
 
 /* =========================
@@ -155,12 +129,7 @@ document.getElementById("save-btn").onclick = function () {
 document.getElementById("undo-btn").onclick = function () {
     if (snapMode) {
         routePoints.pop();
-
-        if (routePoints.length >= 2) {
-            getRoute(routePoints);
-        } else {
-            clearDrawing();
-        }
+        if (routePoints.length >= 2) getRoute(routePoints);
     } else {
         currentRoute.pop();
         drawLine(currentRoute);
@@ -170,9 +139,7 @@ document.getElementById("undo-btn").onclick = function () {
 /* =========================
    CLEAR
 ========================= */
-document.getElementById("clear-btn").onclick = clearDrawing;
-
-function clearDrawing() {
+document.getElementById("clear-btn").onclick = function () {
     routePoints = [];
     currentRoute = [];
 
@@ -182,7 +149,7 @@ function clearDrawing() {
     }
 
     document.getElementById("live-distance").textContent = "Distance: 0 km";
-}
+};
 
 /* =========================
    DELETE
