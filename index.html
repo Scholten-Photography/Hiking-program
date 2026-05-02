@@ -11,7 +11,6 @@
 
 <div class="app">
 
-    <!-- LEFT -->
     <div class="sidebar">
         <h2>Hikes</h2>
 
@@ -25,18 +24,18 @@
         <ul id="hike-list"></ul>
     </div>
 
-    <!-- MAP -->
     <div id="map"></div>
 
-    <!-- RIGHT PANEL (ALWAYS VISIBLE) -->
     <div id="detail-panel" class="panel">
         <h2 id="detail-name">Select a hike</h2>
 
         <p><strong>Distance:</strong> <span id="detail-distance">-</span></p>
         <p><strong>Elevation:</strong> <span id="detail-elevation">-</span></p>
 
+        <canvas id="elevation-chart" width="260" height="120"></canvas>
+
         <p><strong>Notes:</strong></p>
-        <p id="detail-notes">Click a hike to view details</p>
+        <p id="detail-notes"></p>
 
         <button id="edit-btn">Edit</button>
         <button id="delete-btn">Delete</button>
