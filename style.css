@@ -1,6 +1,6 @@
 body {
     margin: 0;
-    font-family: Arial;
+    font-family: Arial, sans-serif;
     background: #111;
     color: white;
 }
@@ -10,16 +10,22 @@ body {
     height: 100vh;
 }
 
+/* LEFT SIDEBAR */
 .sidebar {
     width: 280px;
     background: #1a1a1a;
     padding: 15px;
+    z-index: 1000;
 }
 
+/* MAP */
 #map {
     flex: 1;
+    position: relative;
+    z-index: 1;
 }
 
+/* BUTTONS */
 button {
     width: 100%;
     padding: 10px;
@@ -35,6 +41,7 @@ button:hover {
     background: #3a3a3a;
 }
 
+/* HIKE LIST */
 ul {
     list-style: none;
     padding: 0;
@@ -48,17 +55,28 @@ li {
     cursor: pointer;
 }
 
-/* RIGHT PANEL */
+li:hover {
+    background: #3a3a3a;
+}
+
+/* RIGHT PANEL (FIXED + ALWAYS ON TOP) */
 .panel {
     position: absolute;
     right: 0;
     top: 0;
-    width: 280px;
+
+    width: 300px;
     height: 100%;
+
     background: #181818;
     padding: 15px;
+
+    z-index: 9999; /* 🔥 THIS IS THE FIX */
+
+    box-shadow: -5px 0 15px rgba(0,0,0,0.7);
 }
 
+/* Hidden state */
 .hidden {
     display: none;
 }
