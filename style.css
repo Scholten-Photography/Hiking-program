@@ -29,7 +29,8 @@ button {
     cursor: pointer;
     background: #333;
     color: white;
-    border-radius: 5px;
+    border-radius: 6px;
+    transition: 0.2s;
 }
 
 button:hover {
@@ -47,11 +48,16 @@ button:hover {
 }
 
 #hike-list li {
-    padding: 10px;
+    padding: 12px;
     margin-bottom: 10px;
     background: #222;
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: 6px;
+    transition: 0.2s;
+}
+
+#hike-list li:hover {
+    background: #333;
 }
 
 /* Map */
@@ -59,17 +65,17 @@ button:hover {
     flex: 1;
 }
 
-/* Detail panel (right side popup) */
+/* Detail Panel (now matches sidebar style) */
 #detail-panel {
     position: absolute;
     right: 0;
     top: 0;
-    width: 300px;
+    width: 320px;
     height: 100%;
-    background: #222;
+    background: #111;
     color: white;
-    padding: 15px;
-    box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
     z-index: 1000;
 }
 
@@ -77,10 +83,31 @@ button:hover {
     display: none;
 }
 
-#close-panel {
-    background: red;
-    border: none;
-    padding: 5px 10px;
-    cursor: pointer;
-    float: right;
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #333;
+}
+
+.panel-content {
+    padding: 15px;
+}
+
+.notes {
+    background: #222;
+    padding: 10px;
+    border-radius: 6px;
+    min-height: 60px;
+}
+
+/* Buttons inside panel */
+#edit-btn {
+    margin-top: 15px;
+    background: #444;
+}
+
+#delete-btn {
+    background: #8b0000;
 }
