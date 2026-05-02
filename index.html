@@ -6,12 +6,12 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="style.css">
-
 </head>
 <body>
 
 <div class="app">
 
+    <!-- LEFT SIDEBAR -->
     <div class="sidebar">
         <h2>Hikes</h2>
 
@@ -25,20 +25,28 @@
         <ul id="hike-list"></ul>
     </div>
 
+    <!-- MAP -->
     <div id="map"></div>
 
-    <!-- DETAILS PANEL -->
-    <div id="detail-panel" class="hidden">
-        <h2 id="detail-name"></h2>
+    <!-- RIGHT DETAIL PANEL -->
+    <div id="detail-panel" class="detail-panel hidden">
+        <div class="detail-header">
+            <h2 id="detail-name"></h2>
+            <button id="close-panel">✕</button>
+        </div>
 
-        <p><strong>Distance:</strong> <span id="detail-distance"></span></p>
-        <p><strong>Elevation:</strong> <span id="detail-elevation"></span></p>
+        <div class="detail-content">
+            <p><strong>Distance:</strong> <span id="detail-distance"></span></p>
+            <p><strong>Elevation:</strong> <span id="detail-elevation"></span></p>
 
-        <p><strong>Notes:</strong></p>
-        <p id="detail-notes"></p>
+            <p><strong>Notes:</strong></p>
+            <p id="detail-notes"></p>
+        </div>
 
-        <button id="edit-btn">Edit</button>
-        <button id="delete-btn">Delete</button>
+        <div class="detail-actions">
+            <button id="edit-btn">Edit</button>
+            <button id="delete-btn">Delete</button>
+        </div>
     </div>
 
 </div>
