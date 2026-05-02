@@ -20,10 +20,12 @@ hikes.forEach((hike, index) => renderHike(hike, index));
 /* =========================
    MODE TOGGLE
 ========================= */
-document.getElementById("mode-toggle").addEventListener("click", () => {
+const modeBtn = document.getElementById("mode-toggle");
+
+modeBtn.addEventListener("click", () => {
     snapMode = !snapMode;
-    document.getElementById("mode-toggle").textContent =
-        snapMode ? "Mode: Snap" : "Mode: Manual";
+
+    modeBtn.textContent = snapMode ? "Mode: Snap" : "Mode: Manual";
 });
 
 /* =========================
@@ -54,11 +56,11 @@ function calculateDistance(route) {
 }
 
 /* =========================
-   INPUT CONTROL
+   INPUT CONTROL (FIXED)
 ========================= */
 map.on('click', function(e) {
-    // Only allow drawing with SHIFT
-    if (!window.event.shiftKey) return;
+    // MUST hold shift to draw
+    if (!e.originalEvent.shiftKey) return;
 
     if (snapMode) {
         routePoints.push([e.latlng.lng, e.latlng.lat]);
@@ -76,36 +78,42 @@ map.on('click', function(e) {
    SNAP ROUTING
 ========================= */
 async function getRoute(points) {
-    const response = await fetch(
-        "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
-        {
-            method: "POST",
-            headers: {
-                "Authorization": API_KEY,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ coordinates: points })
+    try {
+        const response = await fetch(
+            "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": API_KEY,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ coordinates: points })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.features || !data.features.length) {
+            alert("No route found here. Try manual mode.");
+            return;
         }
-    );
 
-    const data = await response.json();
+        const coords = data.features[0].geometry.coordinates;
+        const latlngs = coords.map(c => [c[1], c[0]]);
 
-    if (!data.features) {
-        alert("No route found here. Try manual mode.");
-        return;
+        currentRoute = latlngs;
+
+        drawLine(latlngs);
+
+        const distance = (data.features[0].properties.summary.distance / 1000).toFixed(2);
+
+        document.getElementById("live-distance").textContent =
+            "Distance: " + distance + " km";
+
+    } catch (err) {
+        console.error(err);
+        alert("Routing failed. Try manual mode.");
     }
-
-    const coords = data.features[0].geometry.coordinates;
-    const latlngs = coords.map(c => [c[1], c[0]]);
-
-    currentRoute = latlngs;
-
-    drawLine(latlngs);
-
-    const distance = (data.features[0].properties.summary.distance / 1000).toFixed(2);
-
-    document.getElementById("live-distance").textContent =
-        "Distance: " + distance + " km";
 }
 
 /* =========================
@@ -163,7 +171,12 @@ document.getElementById("save-btn").addEventListener("click", function() {
 document.getElementById("undo-btn").addEventListener("click", function() {
     if (snapMode) {
         routePoints.pop();
-        if (routePoints.length >= 2) getRoute(routePoints);
+
+        if (routePoints.length >= 2) {
+            getRoute(routePoints);
+        } else {
+            resetDrawing();
+        }
     } else {
         currentRoute.pop();
         redrawManual();
