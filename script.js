@@ -83,7 +83,7 @@ function decodePolyline(str, precision = 5) {
 async function getRoute(points) {
     try {
         const response = await fetch(
-            "https://api.openrouteservice.org/v2/directions/foot-hiking",
+            "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
             {
                 method: "POST",
                 headers: {
@@ -100,21 +100,20 @@ async function getRoute(points) {
 
         console.log("API:", data);
 
-        if (!data.routes || !data.routes.length) {
+        if (!data.features || !data.features.length) {
             alert("No route found. Try manual mode.");
             return;
         }
 
-        const encoded = data.routes[0].geometry;
+        // ✅ DIRECT coordinates (no decoding needed)
+        const coords = data.features[0].geometry.coordinates;
+        const latlngs = coords.map(c => [c[1], c[0]]);
 
-        // 🔥 DECODE HERE
-        const decoded = decodePolyline(encoded);
+        currentRoute = latlngs;
 
-        currentRoute = decoded;
+        drawLine(latlngs);
 
-        drawLine(decoded);
-
-        const distance = (data.routes[0].summary.distance / 1000).toFixed(2);
+        const distance = (data.features[0].properties.summary.distance / 1000).toFixed(2);
 
         document.getElementById("live-distance").textContent =
             "Distance: " + distance + " km";
@@ -122,7 +121,6 @@ async function getRoute(points) {
     } catch (err) {
         console.error(err);
 
-        // fallback
         const fallback = routePoints.map(p => [p[1], p[0]]);
         currentRoute = fallback;
         drawLine(fallback);
@@ -133,7 +131,6 @@ async function getRoute(points) {
         alert("Snap failed — using fallback.");
     }
 }
-
 /* =========================
    MANUAL
 ========================= */
