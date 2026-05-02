@@ -4,13 +4,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// 🔑 PUT YOUR API KEY HERE
+// 🔑 YOUR API KEY
 const API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjMjcwN2UzOWZmOTQ4NzJiNDYwZDZhMTA2NzNhYWExIiwiaCI6Im11cm11cjY0In0=";
 
 let snapMode = true;
 let routePoints = [];
 let currentRoute = [];
 let currentLine = null;
+let searchMarker = null;
 
 // Load saved hikes safely
 let hikes = [];
@@ -93,7 +94,6 @@ async function getRoute(points) {
     } catch (err) {
         console.error(err);
 
-        // fallback
         const fallback = routePoints.map(p => [p[1], p[0]]);
         currentRoute = fallback;
         drawLine(fallback);
@@ -101,7 +101,7 @@ async function getRoute(points) {
         document.getElementById("live-distance").textContent =
             "Distance: " + calculateDistance(fallback) + " km";
 
-        alert("Snap failed — using manual fallback.");
+        alert("Snap failed — using fallback.");
     }
 }
 
@@ -158,10 +158,7 @@ function calculateDistance(route) {
    SAVE
 ========================= */
 document.getElementById("save-btn").onclick = function () {
-    if (currentRoute.length < 2) {
-        alert("Draw a route first");
-        return;
-    }
+    if (currentRoute.length < 2) return alert("Draw a route first");
 
     const name = prompt("Hike name:");
     if (!name) return;
@@ -172,13 +169,10 @@ document.getElementById("save-btn").onclick = function () {
     const distance = document.getElementById("live-distance")
         .textContent.replace("Distance: ", "").replace(" km", "");
 
-    const hike = { name, distance, elevation, notes, route: currentRoute };
+    hikes.push({ name, distance, elevation, notes, route: currentRoute });
 
-    hikes.push(hike);
     localStorage.setItem("hikes", JSON.stringify(hikes));
-
-    renderHike(hike, hikes.length - 1);
-    resetDrawing();
+    location.reload();
 };
 
 /* =========================
@@ -279,38 +273,42 @@ document.getElementById("edit-btn").onclick = function () {
 };
 
 /* =========================
-   🔎 SEARCH FEATURE
+   🔎 SEARCH (ENTER ONLY)
 ========================= */
 async function searchLocation(query) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
 
-    const res = await fetch(url);
-    const data = await res.json();
+        const res = await fetch(url);
+        const data = await res.json();
 
-    if (!data.length) {
-        alert("Location not found");
-        return;
+        if (!data.length) {
+            alert("Location not found");
+            return;
+        }
+
+        const place = data[0];
+        const lat = parseFloat(place.lat);
+        const lon = parseFloat(place.lon);
+
+        map.setView([lat, lon], 13);
+
+        if (searchMarker) map.removeLayer(searchMarker);
+
+        searchMarker = L.marker([lat, lon]).addTo(map)
+            .bindPopup(place.display_name)
+            .openPopup();
+
+    } catch (err) {
+        console.error(err);
+        alert("Search failed.");
     }
-
-    const place = data[0];
-
-    const lat = parseFloat(place.lat);
-    const lon = parseFloat(place.lon);
-
-    map.setView([lat, lon], 13);
-
-    L.marker([lat, lon]).addTo(map)
-        .bindPopup(place.display_name)
-        .openPopup();
 }
 
-document.getElementById("search-btn").onclick = function () {
-    const query = document.getElementById("search-box").value.trim();
-    if (query) searchLocation(query);
-};
-
-document.getElementById("search-box").addEventListener("keypress", function(e) {
+// ENTER key only
+document.getElementById("search-box").addEventListener("keydown", function(e) {
     if (e.key === "Enter") {
+        e.preventDefault();
         const query = e.target.value.trim();
         if (query) searchLocation(query);
     }
