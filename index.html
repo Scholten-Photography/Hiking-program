@@ -15,6 +15,10 @@
     <div class="sidebar">
         <h2>Hikes</h2>
 
+        <!-- 🔍 SEARCH BAR -->
+        <input id="search-box" type="text" placeholder="Search location..." />
+        <button id="search-btn">Search</button>
+
         <button id="mode-toggle">Mode: Snap</button>
         <button id="save-btn">Save Hike</button>
         <button id="undo-btn">Undo</button>
@@ -27,21 +31,18 @@
 
     <div id="map"></div>
 
+    <!-- DETAILS PANEL -->
     <div id="detail-panel" class="hidden">
-        <div class="panel-header">
-            <h2 id="detail-name"></h2>
-            <button id="close-panel">✕</button>
-        </div>
+        <h2 id="detail-name"></h2>
 
-        <div class="panel-content">
-            <p><strong>Distance:</strong> <span id="detail-distance"></span></p>
-            <p><strong>Elevation:</strong> <span id="detail-elevation"></span></p>
-            <p><strong>Notes:</strong></p>
-            <p id="detail-notes" class="notes"></p>
+        <p><strong>Distance:</strong> <span id="detail-distance"></span></p>
+        <p><strong>Elevation:</strong> <span id="detail-elevation"></span></p>
 
-            <button id="edit-btn">Edit</button>
-            <button id="delete-btn">Delete</button>
-        </div>
+        <p><strong>Notes:</strong></p>
+        <p id="detail-notes"></p>
+
+        <button id="edit-btn">Edit</button>
+        <button id="delete-btn">Delete</button>
     </div>
 
 </div>
