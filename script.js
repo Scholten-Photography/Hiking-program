@@ -39,7 +39,6 @@ modeBtn.onclick = function () {
    MAP INPUT
 ========================= */
 map.on('click', function(e) {
-    // Only draw with SHIFT
     if (!e.originalEvent.shiftKey) return;
 
     if (snapMode) {
@@ -55,7 +54,7 @@ map.on('click', function(e) {
 });
 
 /* =========================
-   SNAP ROUTING (STABLE)
+   SNAP ROUTING
 ========================= */
 async function getRoute(points) {
     try {
@@ -75,8 +74,6 @@ async function getRoute(points) {
 
         const data = await res.json();
 
-        console.log("API:", data);
-
         if (!data.features || !data.features.length) {
             alert("No route found. Try manual mode.");
             return;
@@ -86,7 +83,6 @@ async function getRoute(points) {
         const latlngs = coords.map(c => [c[1], c[0]]);
 
         currentRoute = latlngs;
-
         drawLine(latlngs);
 
         const distance = (data.features[0].properties.summary.distance / 1000).toFixed(2);
@@ -100,7 +96,6 @@ async function getRoute(points) {
         // fallback
         const fallback = routePoints.map(p => [p[1], p[0]]);
         currentRoute = fallback;
-
         drawLine(fallback);
 
         document.getElementById("live-distance").textContent =
@@ -183,7 +178,6 @@ document.getElementById("save-btn").onclick = function () {
     localStorage.setItem("hikes", JSON.stringify(hikes));
 
     renderHike(hike, hikes.length - 1);
-
     resetDrawing();
 };
 
@@ -283,3 +277,41 @@ document.getElementById("edit-btn").onclick = function () {
     localStorage.setItem("hikes", JSON.stringify(hikes));
     location.reload();
 };
+
+/* =========================
+   🔎 SEARCH FEATURE
+========================= */
+async function searchLocation(query) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.length) {
+        alert("Location not found");
+        return;
+    }
+
+    const place = data[0];
+
+    const lat = parseFloat(place.lat);
+    const lon = parseFloat(place.lon);
+
+    map.setView([lat, lon], 13);
+
+    L.marker([lat, lon]).addTo(map)
+        .bindPopup(place.display_name)
+        .openPopup();
+}
+
+document.getElementById("search-btn").onclick = function () {
+    const query = document.getElementById("search-box").value.trim();
+    if (query) searchLocation(query);
+};
+
+document.getElementById("search-box").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        const query = e.target.value.trim();
+        if (query) searchLocation(query);
+    }
+});
