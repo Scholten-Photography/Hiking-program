@@ -8,6 +8,7 @@ body {
     height: 100vh;
 }
 
+/* Sidebar */
 .sidebar {
     width: 300px;
     background: #111;
@@ -35,6 +36,11 @@ button:hover {
     background: #555;
 }
 
+#live-distance {
+    margin: 10px 0;
+}
+
+/* Hike list */
 #hike-list {
     list-style: none;
     padding: 0;
@@ -48,6 +54,33 @@ button:hover {
     border-radius: 5px;
 }
 
+/* Map */
 #map {
     flex: 1;
+}
+
+/* Detail panel (right side popup) */
+#detail-panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 300px;
+    height: 100%;
+    background: #222;
+    color: white;
+    padding: 15px;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+
+.hidden {
+    display: none;
+}
+
+#close-panel {
+    background: red;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    float: right;
 }
