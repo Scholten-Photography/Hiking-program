@@ -309,11 +309,20 @@ async function searchLocation(query) {
     }
 }
 
-// ENTER key only
-document.getElementById("search-box").addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        const query = e.target.value.trim();
-        if (query) searchLocation(query);
+// ENTER key only (SAFE VERSION)
+window.addEventListener("DOMContentLoaded", () => {
+    const searchInput = document.getElementById("search-box");
+
+    if (!searchInput) {
+        console.error("Search box not found in HTML");
+        return;
     }
+
+    searchInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const query = e.target.value.trim();
+            if (query) searchLocation(query);
+        }
+    });
 });
