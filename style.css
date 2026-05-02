@@ -5,21 +5,32 @@ body {
     color: white;
 }
 
+/* MAIN LAYOUT */
 .app {
-    display: flex;
+    display: grid;
+    grid-template-columns: 280px 1fr 300px; /* 🔥 fixed 3 columns */
     height: 100vh;
 }
 
-/* LEFT */
+/* LEFT SIDEBAR */
 .sidebar {
-    width: 280px;
     background: #1a1a1a;
     padding: 15px;
+    overflow-y: auto;
 }
 
-/* MAP */
+/* MAP (center column only now) */
 #map {
-    flex: 1;
+    width: 100%;
+    height: 100%;
+}
+
+/* RIGHT PANEL (PERMANENT COLUMN) */
+.panel {
+    background: #181818;
+    padding: 15px;
+    border-left: 1px solid #333;
+    overflow-y: auto;
 }
 
 /* BUTTONS */
@@ -54,13 +65,4 @@ li {
 
 li:hover {
     background: #3a3a3a;
-}
-
-/* RIGHT PANEL */
-.panel {
-    width: 300px;
-    background: #181818;
-    padding: 15px;
-    border-left: 1px solid #333;
-    overflow-y: auto;
 }
