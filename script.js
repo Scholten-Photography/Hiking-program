@@ -272,35 +272,31 @@ document.getElementById("edit-btn").onclick = function () {
     location.reload();
 };
 
-const GEOCODE_KEY = "29ee7681cefe4192b941edc5c71b710f";
-
-let searchMarker = null;
-
+/* =========================
+   🔎 SEARCH (ENTER ONLY)
+========================= */
 async function searchLocation(query) {
     try {
-        const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(query)}&key=${GEOCODE_KEY}`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
 
         const res = await fetch(url);
         const data = await res.json();
 
-        console.log("Search:", data);
-
-        if (!data.results || !data.results.length) {
+        if (!data.length) {
             alert("Location not found");
             return;
         }
 
-        const place = data.results[0];
+        const place = data[0];
+        const lat = parseFloat(place.lat);
+        const lon = parseFloat(place.lon);
 
-        const lat = place.geometry.lat;
-        const lng = place.geometry.lng;
-
-        map.setView([lat, lng], 13);
+        map.setView([lat, lon], 13);
 
         if (searchMarker) map.removeLayer(searchMarker);
 
-        searchMarker = L.marker([lat, lng]).addTo(map)
-            .bindPopup(place.formatted)
+        searchMarker = L.marker([lat, lon]).addTo(map)
+            .bindPopup(place.display_name)
             .openPopup();
 
     } catch (err) {
@@ -309,19 +305,11 @@ async function searchLocation(query) {
     }
 }
 
-// ENTER key only (SAFE VERSION)
-window.addEventListener("DOMContentLoaded", () => {
-    const searchInput = document.getElementById("search-box");
-
-    if (!searchInput) {
-        console.error("Search box not found in HTML");
-        return;
+// ENTER key only
+document.getElementById("search-box").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        const query = e.target.value.trim();
+        if (query) searchLocation(query);
     }
-
-    searchInput.addEventListener("keydown", function(e) {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            const query = e.target.value.trim();
-            if (query) searchLocation(query);
-        }
-    });
+});
