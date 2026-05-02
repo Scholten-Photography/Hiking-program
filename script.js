@@ -5,7 +5,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // 🔑 PUT YOUR API KEY HERE
-const API_KEY = "PASTE_YOUR_API_KEY_HERE";
+const API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjMjcwN2UzOWZmOTQ4NzJiNDYwZDZhMTA2NzNhYWExIiwiaCI6Im11cm11cjY0In0=";
 
 let snapMode = true;
 let routePoints = [];
