@@ -4,17 +4,25 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// 🔑 REPLACE THIS WITH YOUR NEW API KEY AFTER TESTING
+// 🔑 PUT YOUR API KEY HERE
 const API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjMjcwN2UzOWZmOTQ4NzJiNDYwZDZhMTA2NzNhYWExIiwiaCI6Im11cm11cjY0In0=";
 
 let snapMode = true;
 let routePoints = [];
 let currentRoute = [];
 let currentLine = null;
-let hikes = JSON.parse(localStorage.getItem("hikes")) || [];
+
+// Load saved hikes safely
+let hikes = [];
+try {
+    hikes = JSON.parse(localStorage.getItem("hikes")) || [];
+} catch {
+    hikes = [];
+}
+
 let selectedHikeIndex = null;
 
-// Load saved hikes
+// Render saved hikes
 hikes.forEach((hike, index) => renderHike(hike, index));
 
 /* =========================
@@ -22,15 +30,16 @@ hikes.forEach((hike, index) => renderHike(hike, index));
 ========================= */
 const modeBtn = document.getElementById("mode-toggle");
 
-modeBtn.addEventListener("click", () => {
+modeBtn.onclick = function () {
     snapMode = !snapMode;
     modeBtn.textContent = snapMode ? "Mode: Snap" : "Mode: Manual";
-});
+};
 
 /* =========================
-   INPUT CONTROL
+   MAP INPUT
 ========================= */
 map.on('click', function(e) {
+    // Only draw with SHIFT
     if (!e.originalEvent.shiftKey) return;
 
     if (snapMode) {
@@ -46,11 +55,11 @@ map.on('click', function(e) {
 });
 
 /* =========================
-   SNAP ROUTING (FINAL FIX)
+   SNAP ROUTING (STABLE)
 ========================= */
 async function getRoute(points) {
     try {
-        const response = await fetch(
+        const res = await fetch(
             "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
             {
                 method: "POST",
@@ -64,7 +73,7 @@ async function getRoute(points) {
             }
         );
 
-        const data = await response.json();
+        const data = await res.json();
 
         console.log("API:", data);
 
@@ -88,15 +97,16 @@ async function getRoute(points) {
     } catch (err) {
         console.error(err);
 
-        // fallback to straight line
+        // fallback
         const fallback = routePoints.map(p => [p[1], p[0]]);
         currentRoute = fallback;
+
         drawLine(fallback);
 
         document.getElementById("live-distance").textContent =
             "Distance: " + calculateDistance(fallback) + " km";
 
-        alert("Snap failed — using fallback.");
+        alert("Snap failed — using manual fallback.");
     }
 }
 
@@ -108,6 +118,18 @@ function redrawManual() {
 
     document.getElementById("live-distance").textContent =
         "Distance: " + calculateDistance(currentRoute) + " km";
+}
+
+/* =========================
+   DRAW LINE
+========================= */
+function drawLine(route) {
+    if (currentLine) map.removeLayer(currentLine);
+
+    currentLine = L.polyline(route, {
+        color: "blue",
+        smoothFactor: 1.5
+    }).addTo(map);
 }
 
 /* =========================
@@ -138,22 +160,13 @@ function calculateDistance(route) {
 }
 
 /* =========================
-   DRAW LINE
-========================= */
-function drawLine(route) {
-    if (currentLine) map.removeLayer(currentLine);
-
-    currentLine = L.polyline(route, {
-        color: 'blue',
-        smoothFactor: 1.5
-    }).addTo(map);
-}
-
-/* =========================
    SAVE
 ========================= */
-document.getElementById("save-btn").onclick = function() {
-    if (currentRoute.length < 2) return alert("Draw a route first");
+document.getElementById("save-btn").onclick = function () {
+    if (currentRoute.length < 2) {
+        alert("Draw a route first");
+        return;
+    }
 
     const name = prompt("Hike name:");
     if (!name) return;
@@ -164,16 +177,20 @@ document.getElementById("save-btn").onclick = function() {
     const distance = document.getElementById("live-distance")
         .textContent.replace("Distance: ", "").replace(" km", "");
 
-    hikes.push({ name, distance, elevation, notes, route: currentRoute });
+    const hike = { name, distance, elevation, notes, route: currentRoute };
 
+    hikes.push(hike);
     localStorage.setItem("hikes", JSON.stringify(hikes));
-    location.reload();
+
+    renderHike(hike, hikes.length - 1);
+
+    resetDrawing();
 };
 
 /* =========================
    UNDO
 ========================= */
-document.getElementById("undo-btn").onclick = function() {
+document.getElementById("undo-btn").onclick = function () {
     if (snapMode) {
         routePoints.pop();
 
@@ -207,16 +224,18 @@ function resetDrawing() {
    RENDER SAVED HIKES
 ========================= */
 function renderHike(hike, index) {
+    if (!hike.route) return;
+
     const line = L.polyline(hike.route, { color: "green" }).addTo(map);
 
     const li = document.createElement("li");
     li.innerHTML = `<b>${hike.name}</b><br>${hike.distance} km`;
 
-    li.addEventListener("click", () => {
+    li.onclick = () => {
         selectedHikeIndex = index;
         map.fitBounds(line.getBounds());
         showDetails(hike);
-    });
+    };
 
     document.getElementById("hike-list").appendChild(li);
 }
@@ -239,7 +258,7 @@ document.getElementById("close-panel").onclick = () =>
 /* =========================
    DELETE
 ========================= */
-document.getElementById("delete-btn").onclick = function() {
+document.getElementById("delete-btn").onclick = function () {
     if (selectedHikeIndex === null) return;
 
     if (!confirm("Delete this hike?")) return;
@@ -252,7 +271,7 @@ document.getElementById("delete-btn").onclick = function() {
 /* =========================
    EDIT
 ========================= */
-document.getElementById("edit-btn").onclick = function() {
+document.getElementById("edit-btn").onclick = function () {
     if (selectedHikeIndex === null) return;
 
     const hike = hikes[selectedHikeIndex];
