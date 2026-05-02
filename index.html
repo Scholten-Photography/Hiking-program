@@ -11,7 +11,7 @@
 
 <div class="app">
 
-    <!-- LEFT SIDEBAR -->
+    <!-- LEFT -->
     <div class="sidebar">
         <h2>Hikes</h2>
 
@@ -28,25 +28,19 @@
     <!-- MAP -->
     <div id="map"></div>
 
-    <!-- RIGHT DETAIL PANEL -->
-    <div id="detail-panel" class="detail-panel hidden">
-        <div class="detail-header">
-            <h2 id="detail-name"></h2>
-            <button id="close-panel">✕</button>
-        </div>
+    <!-- RIGHT PANEL -->
+    <div id="detail-panel" class="panel hidden">
+        <h2 id="detail-name"></h2>
 
-        <div class="detail-content">
-            <p><strong>Distance:</strong> <span id="detail-distance"></span></p>
-            <p><strong>Elevation:</strong> <span id="detail-elevation"></span></p>
+        <p><strong>Distance:</strong> <span id="detail-distance"></span></p>
+        <p><strong>Elevation:</strong> <span id="detail-elevation"></span></p>
 
-            <p><strong>Notes:</strong></p>
-            <p id="detail-notes"></p>
-        </div>
+        <p><strong>Notes:</strong></p>
+        <p id="detail-notes"></p>
 
-        <div class="detail-actions">
-            <button id="edit-btn">Edit</button>
-            <button id="delete-btn">Delete</button>
-        </div>
+        <button id="edit-btn">Edit</button>
+        <button id="delete-btn">Delete</button>
+        <button id="close-panel">Close</button>
     </div>
 
 </div>
