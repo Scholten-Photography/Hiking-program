@@ -24,10 +24,11 @@ hikes.forEach((hike, index) => {
     li.innerHTML = `<b>${hike.name}</b><br>${hike.distance} km`;
 
     li.onclick = (e) => {
-        e.stopPropagation(); // 🔥 prevents panel closing
+        e.stopPropagation();
 
         selectedHikeIndex = index;
         map.fitBounds(line.getBounds());
+
         showDetails(hike);
     };
 
@@ -35,15 +36,17 @@ hikes.forEach((hike, index) => {
 });
 
 /* =========================
-   PANEL
+   PANEL (FIXED)
 ========================= */
 function showDetails(hike) {
+    const panel = document.getElementById("detail-panel");
+
     document.getElementById("detail-name").textContent = hike.name;
     document.getElementById("detail-distance").textContent = hike.distance + " km";
     document.getElementById("detail-elevation").textContent = hike.elevation + " m";
     document.getElementById("detail-notes").textContent = hike.notes || "";
 
-    document.getElementById("detail-panel").classList.remove("hidden");
+    panel.classList.remove("hidden");
 }
 
 document.getElementById("close-panel").onclick = () => {
@@ -59,17 +62,13 @@ document.getElementById("mode-toggle").onclick = function () {
 };
 
 /* =========================
-   MAP CLICK (FIXED)
+   MAP DRAW (NO PANEL INTERFERENCE)
 ========================= */
 map.on('click', function(e) {
 
-    // Click map without shift → close panel
-    if (!e.originalEvent.shiftKey) {
-        document.getElementById("detail-panel").classList.add("hidden");
-        return;
-    }
+    // ONLY handle drawing here — DO NOT close panel
+    if (!e.originalEvent.shiftKey) return;
 
-    // SHIFT = draw
     if (snapMode) {
         routePoints.push([e.latlng.lng, e.latlng.lat]);
 
@@ -112,7 +111,8 @@ async function getRoute(points) {
         drawLine(currentRoute);
 
         const dist = (data.features[0].properties.summary.distance / 1000).toFixed(2);
-        document.getElementById("live-distance").textContent = "Distance: " + dist + " km";
+        document.getElementById("live-distance").textContent =
+            "Distance: " + dist + " km";
 
     } catch (err) {
         console.error(err);
@@ -126,32 +126,6 @@ async function getRoute(points) {
 function drawLine(route) {
     if (currentLine) map.removeLayer(currentLine);
     currentLine = L.polyline(route, { color: "blue" }).addTo(map);
-}
-
-/* =========================
-   DISTANCE
-========================= */
-function calculateDistance(route) {
-    let total = 0;
-
-    for (let i = 1; i < route.length; i++) {
-        const [lat1, lon1] = route[i - 1];
-        const [lat2, lon2] = route[i];
-
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-
-        const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1 * Math.PI / 180) *
-            Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) ** 2;
-
-        total += 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    return total.toFixed(2);
 }
 
 /* =========================
@@ -194,7 +168,7 @@ document.getElementById("undo-btn").onclick = function () {
 };
 
 /* =========================
-   CLEAR (FIXED)
+   CLEAR
 ========================= */
 document.getElementById("clear-btn").onclick = clearDrawing;
 
