@@ -7,6 +7,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 let currentRoute = [];
 let currentLine = null;
 let isDrawing = false;
+let lastPoint = null;
 let hikes = JSON.parse(localStorage.getItem("hikes")) || [];
 let selectedHikeIndex = null;
 
@@ -38,27 +39,56 @@ function calculateDistance(route) {
     return total.toFixed(2);
 }
 
-// DRAWING (click + drag)
-map.on('mousedown', () => isDrawing = true);
-map.on('mouseup', () => isDrawing = false);
+// 🎯 ONLY draw when SHIFT is held
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Shift") isDrawing = true;
+});
 
+document.addEventListener("keyup", (e) => {
+    if (e.key === "Shift") {
+        isDrawing = false;
+        lastPoint = null;
+    }
+});
+
+// Smooth drawing with point filtering
 map.on('mousemove', function(e) {
     if (!isDrawing) return;
 
-    currentRoute.push([e.latlng.lat, e.latlng.lng]);
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
 
+    // Only add point if it's far enough from last (reduces noise)
+    if (lastPoint) {
+        const dist = map.distance(lastPoint, e.latlng);
+        if (dist < 10) return; // ignore tiny movements
+    }
+
+    currentRoute.push([lat, lng]);
+    lastPoint = e.latlng;
+
+    redrawCurrent();
+});
+
+// Redraw current line
+function redrawCurrent() {
     if (currentLine) map.removeLayer(currentLine);
 
-    currentLine = L.polyline(currentRoute, { color: 'blue' }).addTo(map);
+    if (currentRoute.length > 1) {
+        currentLine = L.polyline(currentRoute, {
+            color: 'blue',
+            smoothFactor: 1.5
+        }).addTo(map);
+    }
 
     document.getElementById("live-distance").textContent =
         "Distance: " + calculateDistance(currentRoute) + " km";
-});
+}
 
 // SAVE
 document.getElementById("save-btn").addEventListener("click", function() {
     if (currentRoute.length < 2) {
-        alert("Draw a route first!");
+        alert("Draw a route first (hold SHIFT while dragging)!");
         return;
     }
 
@@ -88,27 +118,22 @@ document.getElementById("undo-btn").addEventListener("click", function() {
 // CLEAR
 document.getElementById("clear-btn").addEventListener("click", resetDrawing);
 
-function redrawCurrent() {
-    if (currentLine) map.removeLayer(currentLine);
-
-    if (currentRoute.length > 1) {
-        currentLine = L.polyline(currentRoute, { color: 'blue' }).addTo(map);
-    }
-
-    document.getElementById("live-distance").textContent =
-        "Distance: " + calculateDistance(currentRoute) + " km";
-}
-
 function resetDrawing() {
     currentRoute = [];
+    lastPoint = null;
+
     if (currentLine) map.removeLayer(currentLine);
     currentLine = null;
+
     document.getElementById("live-distance").textContent = "Distance: 0 km";
 }
 
 // Render hikes
 function renderHike(hike, index) {
-    const line = L.polyline(hike.route, { color: 'green' }).addTo(map);
+    const line = L.polyline(hike.route, {
+        color: 'green',
+        smoothFactor: 1.5
+    }).addTo(map);
 
     const li = document.createElement("li");
     li.innerHTML = `<b>${hike.name}</b><br>${hike.distance} km`;
