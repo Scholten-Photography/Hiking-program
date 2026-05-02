@@ -4,7 +4,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// 🔑 ADD YOUR API KEY
+// 🔑 PUT YOUR API KEY HERE
 const API_KEY = "PASTE_YOUR_API_KEY_HERE";
 
 let snapMode = true;
@@ -24,7 +24,6 @@ const modeBtn = document.getElementById("mode-toggle");
 
 modeBtn.addEventListener("click", () => {
     snapMode = !snapMode;
-
     modeBtn.textContent = snapMode ? "Mode: Snap" : "Mode: Manual";
 });
 
@@ -56,10 +55,9 @@ function calculateDistance(route) {
 }
 
 /* =========================
-   INPUT CONTROL (FIXED)
+   INPUT CONTROL
 ========================= */
 map.on('click', function(e) {
-    // MUST hold shift to draw
     if (!e.originalEvent.shiftKey) return;
 
     if (snapMode) {
@@ -75,44 +73,49 @@ map.on('click', function(e) {
 });
 
 /* =========================
-   SNAP ROUTING
+   SNAP ROUTING (FIXED)
 ========================= */
 async function getRoute(points) {
     try {
         const response = await fetch(
-            "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
+            "https://api.openrouteservice.org/v2/directions/foot-hiking",
             {
                 method: "POST",
                 headers: {
                     "Authorization": API_KEY,
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ coordinates: points })
+                body: JSON.stringify({
+                    coordinates: points,
+                    instructions: false
+                })
             }
         );
 
         const data = await response.json();
 
-        if (!data.features || !data.features.length) {
-            alert("No route found here. Try manual mode.");
+        console.log("API RESPONSE:", data); // 🔍 DEBUG
+
+        if (!data.routes || !data.routes.length) {
+            alert("No route found here. Try spreading points farther apart or use manual mode.");
             return;
         }
 
-        const coords = data.features[0].geometry.coordinates;
+        const coords = data.routes[0].geometry.coordinates;
         const latlngs = coords.map(c => [c[1], c[0]]);
 
         currentRoute = latlngs;
 
         drawLine(latlngs);
 
-        const distance = (data.features[0].properties.summary.distance / 1000).toFixed(2);
+        const distance = (data.routes[0].summary.distance / 1000).toFixed(2);
 
         document.getElementById("live-distance").textContent =
             "Distance: " + distance + " km";
 
     } catch (err) {
-        console.error(err);
-        alert("Routing failed. Try manual mode.");
+        console.error("ROUTING ERROR:", err);
+        alert("Routing failed. Check console (F12) for details.");
     }
 }
 
