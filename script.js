@@ -4,91 +4,70 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-let currentRoute = [];
+// 🔑 PASTE YOUR API KEY HERE
+const API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjMjcwN2UzOWZmOTQ4NzJiNDYwZDZhMTA2NzNhYWExIiwiaCI6Im11cm11cjY0In0=";
+
+let routePoints = [];
 let currentLine = null;
-let isDrawing = false;
-let lastPoint = null;
 let hikes = JSON.parse(localStorage.getItem("hikes")) || [];
 let selectedHikeIndex = null;
 
 // Load hikes
 hikes.forEach((hike, index) => renderHike(hike, index));
 
-// Distance calculation
-function calculateDistance(route) {
-    let total = 0;
+// Click to add route points (NO dragging anymore)
+map.on('click', function(e) {
+    routePoints.push([e.latlng.lng, e.latlng.lat]); // NOTE: lng, lat format
 
-    for (let i = 1; i < route.length; i++) {
-        const [lat1, lon1] = route[i - 1];
-        const [lat2, lon2] = route[i];
-
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-
-        const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1 * Math.PI / 180) *
-            Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) ** 2;
-
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        total += R * c;
-    }
-
-    return total.toFixed(2);
-}
-
-// 🎯 ONLY draw when SHIFT is held
-document.addEventListener("keydown", (e) => {
-    if (e.key === "Shift") isDrawing = true;
-});
-
-document.addEventListener("keyup", (e) => {
-    if (e.key === "Shift") {
-        isDrawing = false;
-        lastPoint = null;
+    if (routePoints.length >= 2) {
+        getRoute(routePoints);
     }
 });
 
-// Smooth drawing with point filtering
-map.on('mousemove', function(e) {
-    if (!isDrawing) return;
+// 🧠 Get snapped route from API
+async function getRoute(points) {
+    const response = await fetch(
+        "https://api.openrouteservice.org/v2/directions/foot-hiking/geojson",
+        {
+            method: "POST",
+            headers: {
+                "Authorization": API_KEY,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                coordinates: points
+            })
+        }
+    );
 
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
+    const data = await response.json();
 
-    // Only add point if it's far enough from last (reduces noise)
-    if (lastPoint) {
-        const dist = map.distance(lastPoint, e.latlng);
-        if (dist < 10) return; // ignore tiny movements
-    }
+    const coords = data.features[0].geometry.coordinates;
 
-    currentRoute.push([lat, lng]);
-    lastPoint = e.latlng;
+    // Convert to Leaflet format
+    const latlngs = coords.map(c => [c[1], c[0]]);
 
-    redrawCurrent();
-});
-
-// Redraw current line
-function redrawCurrent() {
     if (currentLine) map.removeLayer(currentLine);
 
-    if (currentRoute.length > 1) {
-        currentLine = L.polyline(currentRoute, {
-            color: 'blue',
-            smoothFactor: 1.5
-        }).addTo(map);
-    }
+    currentLine = L.polyline(latlngs, {
+        color: "blue"
+    }).addTo(map);
+
+    const distance = (data.features[0].properties.summary.distance / 1000).toFixed(2);
 
     document.getElementById("live-distance").textContent =
-        "Distance: " + calculateDistance(currentRoute) + " km";
+        "Distance: " + distance + " km";
+
+    // Store snapped route for saving
+    currentRoute = latlngs;
 }
 
 // SAVE
+let currentRoute = [];
+
 document.getElementById("save-btn").addEventListener("click", function() {
-    if (currentRoute.length < 2) {
-        alert("Draw a route first (hold SHIFT while dragging)!");
+    if (!currentRoute || currentRoute.length < 2) {
+        alert("Create a route first!");
         return;
     }
 
@@ -98,7 +77,8 @@ document.getElementById("save-btn").addEventListener("click", function() {
     const elevation = prompt("Elevation gain (m):") || "N/A";
     const notes = prompt("Notes:");
 
-    const distance = calculateDistance(currentRoute);
+    const distanceText = document.getElementById("live-distance").textContent;
+    const distance = distanceText.replace("Distance: ", "").replace(" km", "");
 
     const hike = { name, distance, elevation, notes, route: currentRoute };
 
@@ -109,18 +89,12 @@ document.getElementById("save-btn").addEventListener("click", function() {
     resetDrawing();
 });
 
-// UNDO
-document.getElementById("undo-btn").addEventListener("click", function() {
-    currentRoute.pop();
-    redrawCurrent();
-});
-
 // CLEAR
 document.getElementById("clear-btn").addEventListener("click", resetDrawing);
 
 function resetDrawing() {
+    routePoints = [];
     currentRoute = [];
-    lastPoint = null;
 
     if (currentLine) map.removeLayer(currentLine);
     currentLine = null;
@@ -131,8 +105,7 @@ function resetDrawing() {
 // Render hikes
 function renderHike(hike, index) {
     const line = L.polyline(hike.route, {
-        color: 'green',
-        smoothFactor: 1.5
+        color: "green"
     }).addTo(map);
 
     const li = document.createElement("li");
