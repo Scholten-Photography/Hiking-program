@@ -6,12 +6,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let currentRoute = [];
 let currentLine = null;
+let isDrawing = false;
 let hikes = JSON.parse(localStorage.getItem("hikes")) || [];
+let selectedHikeIndex = null;
 
-// Load saved hikes
-hikes.forEach(renderHike);
+// Load hikes
+hikes.forEach((hike, index) => renderHike(hike, index));
 
-// Distance function (Haversine formula)
+// Distance calculation
 function calculateDistance(route) {
     let total = 0;
 
@@ -36,8 +38,13 @@ function calculateDistance(route) {
     return total.toFixed(2);
 }
 
-// Draw route
-map.on('click', function(e) {
+// DRAWING (click + drag)
+map.on('mousedown', () => isDrawing = true);
+map.on('mouseup', () => isDrawing = false);
+
+map.on('mousemove', function(e) {
+    if (!isDrawing) return;
+
     currentRoute.push([e.latlng.lat, e.latlng.lng]);
 
     if (currentLine) map.removeLayer(currentLine);
@@ -63,26 +70,25 @@ document.getElementById("save-btn").addEventListener("click", function() {
 
     const distance = calculateDistance(currentRoute);
 
-    const hike = {
-        name,
-        distance,
-        elevation,
-        notes,
-        route: currentRoute
-    };
+    const hike = { name, distance, elevation, notes, route: currentRoute };
 
     hikes.push(hike);
     localStorage.setItem("hikes", JSON.stringify(hikes));
 
-    renderHike(hike);
-
+    renderHike(hike, hikes.length - 1);
     resetDrawing();
 });
 
 // UNDO
 document.getElementById("undo-btn").addEventListener("click", function() {
     currentRoute.pop();
+    redrawCurrent();
+});
 
+// CLEAR
+document.getElementById("clear-btn").addEventListener("click", resetDrawing);
+
+function redrawCurrent() {
     if (currentLine) map.removeLayer(currentLine);
 
     if (currentRoute.length > 1) {
@@ -91,32 +97,24 @@ document.getElementById("undo-btn").addEventListener("click", function() {
 
     document.getElementById("live-distance").textContent =
         "Distance: " + calculateDistance(currentRoute) + " km";
-});
-
-// CLEAR (ONLY current drawing)
-document.getElementById("clear-btn").addEventListener("click", resetDrawing);
+}
 
 function resetDrawing() {
     currentRoute = [];
-    if (currentLine) {
-        map.removeLayer(currentLine);
-        currentLine = null;
-    }
-
+    if (currentLine) map.removeLayer(currentLine);
+    currentLine = null;
     document.getElementById("live-distance").textContent = "Distance: 0 km";
 }
 
 // Render hikes
-function renderHike(hike) {
+function renderHike(hike, index) {
     const line = L.polyline(hike.route, { color: 'green' }).addTo(map);
 
     const li = document.createElement("li");
-    li.innerHTML = `
-        <b>${hike.name}</b><br>
-        ${hike.distance} km
-    `;
+    li.innerHTML = `<b>${hike.name}</b><br>${hike.distance} km`;
 
     li.addEventListener("click", () => {
+        selectedHikeIndex = index;
         map.fitBounds(line.getBounds());
         showDetails(hike);
     });
@@ -124,16 +122,44 @@ function renderHike(hike) {
     document.getElementById("hike-list").appendChild(li);
 }
 
-// Detail panel
+// DETAIL PANEL
 function showDetails(hike) {
     document.getElementById("detail-name").textContent = hike.name;
-    document.getElementById("detail-distance").textContent = "Distance: " + hike.distance + " km";
-    document.getElementById("detail-elevation").textContent = "Elevation: " + hike.elevation + " m";
+    document.getElementById("detail-distance").textContent = hike.distance + " km";
+    document.getElementById("detail-elevation").textContent = hike.elevation + " m";
     document.getElementById("detail-notes").textContent = hike.notes || "";
 
     document.getElementById("detail-panel").classList.remove("hidden");
 }
 
-document.getElementById("close-panel").addEventListener("click", function() {
+document.getElementById("close-panel").onclick = () =>
     document.getElementById("detail-panel").classList.add("hidden");
+
+// DELETE
+document.getElementById("delete-btn").addEventListener("click", function() {
+    if (selectedHikeIndex === null) return;
+
+    if (!confirm("Delete this hike?")) return;
+
+    hikes.splice(selectedHikeIndex, 1);
+    localStorage.setItem("hikes", JSON.stringify(hikes));
+    location.reload();
+});
+
+// EDIT
+document.getElementById("edit-btn").addEventListener("click", function() {
+    if (selectedHikeIndex === null) return;
+
+    const hike = hikes[selectedHikeIndex];
+
+    const name = prompt("New name:", hike.name) || hike.name;
+    const elevation = prompt("New elevation:", hike.elevation) || hike.elevation;
+    const notes = prompt("New notes:", hike.notes) || hike.notes;
+
+    hike.name = name;
+    hike.elevation = elevation;
+    hike.notes = notes;
+
+    localStorage.setItem("hikes", JSON.stringify(hikes));
+    location.reload();
 });
