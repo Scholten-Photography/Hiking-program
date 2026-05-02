@@ -25,29 +25,6 @@ body {
     flex: 1;
 }
 
-/* 🔎 SEARCH BAR */
-#search-box {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-
-    background: #2a2a2a;
-    border: none;
-    border-radius: 8px;
-
-    color: white;
-    font-size: 14px;
-}
-
-#search-box::placeholder {
-    color: #aaa;
-}
-
-#search-box:focus {
-    outline: none;
-    background: #333;
-}
-
 /* BUTTONS */
 button {
     width: 100%;
