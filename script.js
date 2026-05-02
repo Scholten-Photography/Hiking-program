@@ -272,31 +272,35 @@ document.getElementById("edit-btn").onclick = function () {
     location.reload();
 };
 
-/* =========================
-   🔎 SEARCH (ENTER ONLY)
-========================= */
+const GEOCODE_KEY = "29ee7681cefe4192b941edc5c71b710f";
+
+let searchMarker = null;
+
 async function searchLocation(query) {
     try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+        const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(query)}&key=${GEOCODE_KEY}`;
 
         const res = await fetch(url);
         const data = await res.json();
 
-        if (!data.length) {
+        console.log("Search:", data);
+
+        if (!data.results || !data.results.length) {
             alert("Location not found");
             return;
         }
 
-        const place = data[0];
-        const lat = parseFloat(place.lat);
-        const lon = parseFloat(place.lon);
+        const place = data.results[0];
 
-        map.setView([lat, lon], 13);
+        const lat = place.geometry.lat;
+        const lng = place.geometry.lng;
+
+        map.setView([lat, lng], 13);
 
         if (searchMarker) map.removeLayer(searchMarker);
 
-        searchMarker = L.marker([lat, lon]).addTo(map)
-            .bindPopup(place.display_name)
+        searchMarker = L.marker([lat, lng]).addTo(map)
+            .bindPopup(place.formatted)
             .openPopup();
 
     } catch (err) {
