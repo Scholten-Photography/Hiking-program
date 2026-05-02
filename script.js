@@ -1,36 +1,30 @@
-window.addEventListener("DOMContentLoaded", () => {
-
 const map = L.map('map').setView([49.05, -122.3], 10);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// 🔑 API KEYS
+// 🔑 YOUR API KEY
 const API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjMjcwN2UzOWZmOTQ4NzJiNDYwZDZhMTA2NzNhYWExIiwiaCI6Im11cm11cjY0In0=";
-const GEOCODE_KEY = "29ee7681cefe4192b941edc5c71b710f";
 
 let snapMode = true;
 let routePoints = [];
 let currentRoute = [];
 let currentLine = null;
-let searchMarker = null;
 
-// Load hikes
+// Load saved hikes
 let hikes = JSON.parse(localStorage.getItem("hikes")) || [];
 let selectedHikeIndex = null;
 
-// Render hikes
+// Render saved hikes
 hikes.forEach((hike, index) => renderHike(hike, index));
 
 /* =========================
    MODE TOGGLE
 ========================= */
-const modeBtn = document.getElementById("mode-toggle");
-
-modeBtn.onclick = () => {
+document.getElementById("mode-toggle").onclick = function () {
     snapMode = !snapMode;
-    modeBtn.textContent = snapMode ? "Mode: Snap" : "Mode: Manual";
+    this.textContent = snapMode ? "Mode: Snap" : "Mode: Manual";
 };
 
 /* =========================
@@ -52,7 +46,7 @@ map.on('click', function(e) {
 });
 
 /* =========================
-   ROUTING
+   SNAP ROUTING
 ========================= */
 async function getRoute(points) {
     try {
@@ -70,7 +64,7 @@ async function getRoute(points) {
 
         const data = await res.json();
 
-        if (!data.features?.length) {
+        if (!data.features || !data.features.length) {
             alert("No route found");
             return;
         }
@@ -139,7 +133,7 @@ function calculateDistance(route) {
 /* =========================
    SAVE
 ========================= */
-document.getElementById("save-btn").onclick = () => {
+document.getElementById("save-btn").onclick = function () {
     if (currentRoute.length < 2) return alert("Draw route first");
 
     const name = prompt("Hike name:");
@@ -158,48 +152,33 @@ document.getElementById("save-btn").onclick = () => {
 };
 
 /* =========================
-   SEARCH (WORKING)
+   UNDO
 ========================= */
-async function searchLocation(query) {
-    try {
-        const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(query)}&key=${GEOCODE_KEY}`;
+document.getElementById("undo-btn").onclick = function () {
+    if (snapMode) {
+        routePoints.pop();
 
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (!data.results?.length) {
-            alert("Not found");
-            return;
+        if (routePoints.length >= 2) {
+            getRoute(routePoints);
         }
-
-        const { lat, lng } = data.results[0].geometry;
-
-        map.setView([lat, lng], 13);
-
-        if (searchMarker) map.removeLayer(searchMarker);
-
-        searchMarker = L.marker([lat, lng]).addTo(map)
-            .bindPopup(data.results[0].formatted)
-            .openPopup();
-
-    } catch (err) {
-        console.error(err);
-        alert("Search failed");
+    } else {
+        currentRoute.pop();
+        redrawManual();
     }
-}
+};
 
-// attach safely AFTER load
-const searchBox = document.getElementById("search-box");
+/* =========================
+   CLEAR
+========================= */
+document.getElementById("clear-btn").onclick = function () {
+    routePoints = [];
+    currentRoute = [];
 
-if (searchBox) {
-    searchBox.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            const q = e.target.value.trim();
-            if (q) searchLocation(q);
-        }
-    });
-}
+    if (currentLine) map.removeLayer(currentLine);
+    currentLine = null;
+
+    document.getElementById("live-distance").textContent = "Distance: 0 km";
+};
 
 /* =========================
    RENDER HIKES
@@ -215,9 +194,49 @@ function renderHike(hike, index) {
     li.onclick = () => {
         selectedHikeIndex = index;
         map.fitBounds(line.getBounds());
+        showDetails(hike);
     };
 
     document.getElementById("hike-list").appendChild(li);
 }
 
-});
+/* =========================
+   DETAILS
+========================= */
+function showDetails(hike) {
+    document.getElementById("detail-name").textContent = hike.name;
+    document.getElementById("detail-distance").textContent = hike.distance + " km";
+    document.getElementById("detail-elevation").textContent = hike.elevation + " m";
+    document.getElementById("detail-notes").textContent = hike.notes || "";
+
+    document.getElementById("detail-panel").classList.remove("hidden");
+}
+
+/* =========================
+   DELETE
+========================= */
+document.getElementById("delete-btn").onclick = function () {
+    if (selectedHikeIndex === null) return;
+
+    if (!confirm("Delete this hike?")) return;
+
+    hikes.splice(selectedHikeIndex, 1);
+    localStorage.setItem("hikes", JSON.stringify(hikes));
+    location.reload();
+};
+
+/* =========================
+   EDIT
+========================= */
+document.getElementById("edit-btn").onclick = function () {
+    if (selectedHikeIndex === null) return;
+
+    const hike = hikes[selectedHikeIndex];
+
+    hike.name = prompt("New name:", hike.name) || hike.name;
+    hike.elevation = prompt("New elevation:", hike.elevation) || hike.elevation;
+    hike.notes = prompt("New notes:", hike.notes) || hike.notes;
+
+    localStorage.setItem("hikes", JSON.stringify(hikes));
+    location.reload();
+};
