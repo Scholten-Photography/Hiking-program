@@ -8,7 +8,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // 🔑 API KEYS
 const API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjMjcwN2UzOWZmOTQ4NzJiNDYwZDZhMTA2NzNhYWExIiwiaCI6Im11cm11cjY0In0=";
-const GEOCODE_KEY = "PASTE_YOUR_OPENCAGE_KEY_HERE";
+const GEOCODE_KEY = "29ee7681cefe4192b941edc5c71b710f";
 
 let snapMode = true;
 let routePoints = [];
